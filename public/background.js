@@ -7,7 +7,7 @@ chrome.windows.onCreated.addListener(
         const params = await LanguageModel.params({
             ...userInput
         })
-        const availability = await chrome.ai.prompt.getAvailability();
+        const availability = await chrome.ai.prompt.getAvailability();  //since extension the command line is different 
 
         if (availability === "available") {
             const promptString = `Based on this user profile: ${JSON.stringify(userInput)}, recommend a screen time budget in minutes for a new work session. Respond with only the number.`;
