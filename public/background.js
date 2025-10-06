@@ -26,7 +26,7 @@ chrome.windows.onCreated.addListener(
                 },
             });
         }
-        console.log("New Window Details:", window);
+        console.log("New Window Details:", window); //window details are present here
 
 
     },
