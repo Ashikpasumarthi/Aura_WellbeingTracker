@@ -18,7 +18,7 @@ chrome.windows.onCreated.addListener(
 
         }
         else {
-            const session = await chrome.ai.prompt.create({
+            const session = await chrome.ai.prompt.create({                 // in case the availability is not available we can create a session and monitor the progress
                 monitor(m) {
                     m.addEventListener('downloadprogress', (e) => {
                         console.log(`Downloaded ${e.loaded * 100}%`);
