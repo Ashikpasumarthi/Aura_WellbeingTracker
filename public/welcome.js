@@ -1,4 +1,4 @@
-
+//reference for francois
 async function initializePage() {
     const statusElement = document.getElementById('download-status');
     const downloadButton = document.getElementById('enable-ai-button');
