@@ -5,14 +5,14 @@ async function initializePage() {
 
     try {
 
-        const availability = await window.ai.getAvailability();
+        const availability = await window.ai.canCreate();
         console.log("Current AI Status:", availability);
 
-        if (availability === "available") {
+        if (availability === "readily") {
 
             statusElement.textContent = "AI is ready. Getting your budget...";
             await getAndSaveAIBudget();
-        } else if (availability === "downloadable") {
+        } else if (availability === "after-download") {
 
             statusElement.textContent = "AI features require a download.";
             downloadButton.style.display = 'block';
