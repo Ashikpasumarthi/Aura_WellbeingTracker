@@ -5,14 +5,14 @@ async function initializePage() {
 
     try {
 
-        const availability = await window.ai.canCreate();
+        const availability = await LanguageModel.availability();
         console.log("Current AI Status:", availability);
 
-        if (availability === "readily") {
+        if (availability === "available") {
 
             statusElement.textContent = "AI is ready. Getting your budget...";
             await getAndSaveAIBudget();
-        } else if (availability === "after-download") {
+        } else if (availability === "downloadable") {
 
             statusElement.textContent = "AI features require a download.";
             downloadButton.style.display = 'block';
@@ -31,19 +31,30 @@ async function initializePage() {
 async function getAndSaveAIBudget() {
     let budgetInMinutes;
     try {
-        const session = await window.ai.create();
+        
+        const params = await LanguageModel.params();
+
+       
+        const session = await LanguageModel.create({
+            temperature: 0.2, // Make the AI more focused and less "creative"
+            topK: params.defaultTopK
+        });
+        
+       
         const storageData = await chrome.storage.local.get('userInput');
         const userInput = storageData.userInput || {};
 
+        
         const promptString = `Based on this user profile: ${JSON.stringify(userInput)}, recommend a screen time budget in minutes. Respond with only the number.`;
-        const response = await session.run({ prompt: promptString });
+        const response = await session.run(promptString); 
         budgetInMinutes = parseInt(response, 10);
+
     } catch (error) {
         console.error("AI task failed:", error);
         budgetInMinutes = 60; // Fallback on any error.
     }
 
-
+   
     await chrome.storage.local.set({ globalBudget: budgetInMinutes });
     document.getElementById("download-status").textContent = `Your personalized AI budget is set to ${budgetInMinutes} minutes.`;
 }
