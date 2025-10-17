@@ -1,42 +1,60 @@
 chrome.windows.onCreated.addListener(
     async (window) => {
-        let userInput = { gender: "Male", age: "25-34", activityLevel: "Moderate" };
-        console.log("Gemini API will be called here with async await to get the time he/she should spend on window based on user input", userInput);
+        // let userInput = { gender: "Male", age: "25-34", activityLevel: "Moderate" };
+        // console.log("Gemini API will be called here with async await to get the time he/she should spend on window based on user input", userInput);
         //store the time in local chrome which we got from gemini api and also create a variable which is 0 initially and will be incremented every second using set interval
+        console.log("BG: New window detected. Starting AI budget process...");
 
-        const params = await LanguageModel.params({
-            ...userInput
-        })
-        const availability = await chrome.ai.prompt.getAvailability();  //since extension the command line is different 
-
-        if (availability === "available") {
-            const promptString = `Based on this user profile: ${JSON.stringify(userInput)}, recommend a screen time budget in minutes for a new work session. Respond with only the number.`;
-            const response = await chrome.ai.prompt.run({ prompt: promptString });
-            const recommendedTime = parseInt(response.text, 10);
-            console.log(`Recommended screen time budget: ${recommendedTime} minutes`);
-
-
-        }
-        else {
-            const session = await chrome.ai.prompt.create({                 // in case the availability is not available we can create a session and monitor the progress
-                monitor(m) {
-                    m.addEventListener('downloadprogress', (e) => {
-                        console.log(`Downloaded ${e.loaded * 100}%`);
-                    });
-                },
-            });
-        }
-        console.log("New Window Details:", window); //window details are present here
-
-
+        await createOffScreenDoc();
+        const storageData = await chrome.storage.local.get('userInput');
+        const userInput = storageData.userInput || {};
+        chrome.runtime.sendMessage({
+            target: 'offscreen',
+            action: 'getAIBudget',
+            windowId: window.id,
+            data: userInput
+        });
     },
     {
         windowType: ["normal"]
     }
 )
 
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete' && tab.url && tab.url.endsWith('welcome.html')) {
 
-function handleInstalled(details) {
+
+        try {
+            await chrome.tabs.sendMessage(tabId, { action: "showEnableAIButton" });
+        }
+        catch (error) {
+            console.error("Error sending message to welcome tab:", error);
+        }
+    }
+});
+
+let creating;
+async function createOffScreenDoc() {
+    if (await chrome.offscreen.hasDocument()) {
+        return;
+    }
+    if (creating) {
+        await creating;
+    } else {
+        creating = chrome.offscreen.createDocument({
+            url: 'offscreen.html',
+            reasons: ['DOM_PARSER'],
+            justification: 'Needed to run AI model in the background'
+        });
+        await creating;
+        creating = null;
+    }
+}
+
+
+
+
+async function handleInstalled(details) {
     console.log(details.reason);
     chrome.tabs.create({
         url: "welcome.html",
@@ -52,32 +70,30 @@ async function getCurrentTab() {
 
 
 chrome.tabs.onCreated.addListener(
-    (tab) => {
+    async (tab) => {
         let tabId = tab.id.toString();
         let initialtime = new Date().getTime();
         console.log("New Tab Details:", tab);
-        // chrome.alarms.create(
-        //     tab.id.toString(),
-        //     { delayInMinutes: 180 },
-        // );
-        chrome.storage.local.get(null, (allData) => {      // the null tells to get all the data from local storage
+        chrome.storage.local.get(null, async (allData) => {      // the null tells to get all the data from local storage
             allData[tabId] = {
                 startTime: initialtime, endTime: 0, overAllTimeSpent: 0
             };
             allData.lastActiveTabId = tabId;
-            chrome.storage.local.set(allData);
+            await chrome.storage.local.set(allData);
         });
     }
 );
 
 
-chrome.tabs.onActivated.addListener((activeInfo) => {
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
     console.log('Tab activated:', activeInfo);
     let newTabId = activeInfo.tabId.toString();
     let switchTime = new Date().getTime();
 
-    chrome.storage.local.get(null, (allData) => {
+    chrome.storage.local.get(null, async (allData) => {
         const lastActivatedTabId = allData.lastActivatedTabId;
+        console.log("Last Activated Tab ID:", lastActivatedTabId);
+        console.log("New Activated Tab ID:", newTabId);
         if (lastActivatedTabId) {
             if (allData[lastActivatedTabId]) {
                 allData[lastActivatedTabId].endTime = switchTime;
@@ -92,7 +108,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 
         allData.lastActivatedTabId = newTabId;
 
-        chrome.storage.local.set(allData);
+        await chrome.storage.local.set(allData);
     })
 
 });
