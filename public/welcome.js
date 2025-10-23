@@ -29,32 +29,36 @@ async function initializePage() {
 }
 
 async function getAndSaveAIBudget() {
+    console.log("getAndSaveAIBudget: Starting budget calculation..."); // <-- Log 5
     let budgetInMinutes;
     try {
-        
+        // Use LanguageModel.create()
         const params = await LanguageModel.params();
-
-       
         const session = await LanguageModel.create({
-            temperature: 0.2, // Make the AI more focused and less "creative"
+            temperature: 0.7,
             topK: params.defaultTopK
         });
-        
-       
-        const storageData = await chrome.storage.local.get('userInput');
-        const userInput = storageData.userInput || {};
 
-        
-        const promptString = `Based on this user profile: ${JSON.stringify(userInput)}, recommend a screen time budget in minutes. Respond with only the number.`;
-        const response = await session.run(promptString); 
+        // READ the user input FROM STORAGE
+        console.log("getAndSaveAIBudget: Reading userInput from storage..."); // <-- Log 6
+        const storageData = await chrome.storage.local.get('userInput');
+        const userInputFromStorage = storageData.userInput || {};
+        console.log("getAndSaveAIBudget: User input read from storage:", userInputFromStorage); // <-- Log 7
+
+        // Run the prompt using the input from storage
+        const promptString = `Given the user profile: ${JSON.stringify(userInputFromStorage)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes`;
+        console.log("getAndSaveAIBudget: Sending prompt to AI:", promptString); // <-- Log 8
+        const response = await session.prompt(promptString);
         budgetInMinutes = parseInt(response, 10);
+        console.log("getAndSaveAIBudget: AI responded with budget:", budgetInMinutes); // <-- Log 9
 
     } catch (error) {
-        console.error("AI task failed:", error);
-        budgetInMinutes = 60; // Fallback on any error.
+        console.error("AI task failed during recalculation:", error);
+        budgetInMinutes = 60; // Fallback
     }
 
-   
+    // Save the new budget
+    console.log("getAndSaveAIBudget: Saving new budget to storage:", budgetInMinutes); // <-- Log 10
     await chrome.storage.local.set({ globalBudget: budgetInMinutes });
     document.getElementById("download-status").textContent = `Your personalized AI budget is set to ${budgetInMinutes} minutes.`;
 }
@@ -67,14 +71,15 @@ async function handleEnableAIModal() {
         statusElement.textContent = "Starting download...";
         downloadButton.disabled = true;
 
-        await window.ai.create({
+        await LanguageModel.create({
             monitor(m) {
                 m.addEventListener('downloadprogress', (e) => {
-                    statusElement.textContent = `Downloading AI model: ${Math.floor(e.loaded * 100)}%`;
+                    // console.log(`Downloaded ${e.loaded * 100}%`);
+                    statusElement = document.getElementById("download-status");
+                    statusElement.textContent = `Downloading AI model... ${Math.floor(e.loaded * 100)}% completed.`;
                 });
             },
         });
-
         statusElement.textContent = "AI model enabled successfully!";
         downloadButton.style.display = 'none';
 
@@ -99,17 +104,21 @@ async function handleSavePreferences() {
         officeHours: document.getElementById('office-hours').value,
     };
 
+    console.log("Save Clicked: New user input gathered:", userInput); // <-- Log 1
+
     try {
         const allData = await chrome.storage.local.get(null);
         allData.userInput = userInput;
         await chrome.storage.local.set(allData);
-        console.log("User input saved:", userInput);
+        console.log("Save Complete: User input has been saved to storage."); // <-- Log 2
 
-        // After saving preferences, re-calculate the AI budget.
+        // Now, trigger the recalculation
+        console.log("Triggering AI budget recalculation..."); // <-- Log 3
         await getAndSaveAIBudget();
+        console.log("AI budget recalculation finished."); // <-- Log 4
 
     } catch (error) {
-        console.error("Failed to save user input:", error);
+        console.error("Failed to save user input or recalculate budget:", error);
     }
 }
 
