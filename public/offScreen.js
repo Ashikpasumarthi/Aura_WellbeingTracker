@@ -25,8 +25,8 @@ chrome.runtime.onMessage.addListener(async (message) => {
                 });
 
 
-                const promptString = `Given the user profile: ${JSON.stringify(userInput)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes`;
-                console.log("OFFSCREEN: Sending prompt:", promptString);
+                // const promptString = `Given the user profile: ${JSON.stringify(userInput)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes`;
+                // console.log("OFFSCREEN: Sending prompt:", promptString);
 
                 const response = await session.prompt(promptString);
                 budgetInMinutes = parseInt(response, 10);
@@ -34,15 +34,15 @@ chrome.runtime.onMessage.addListener(async (message) => {
 
                 if (isNaN(budgetInMinutes)) {
                     console.warn("OFFSCREEN: AI response NaN. Falling back.");
-                    budgetInMinutes = 60;
+                    budgetInMinutes = 1;
                 }
             } else {
                 console.log("OFFSCREEN: AI not available. Falling back.");
-                budgetInMinutes = 60; // Fallback
+                budgetInMinutes = 1; // Fallback
             }
         } catch (error) {
             console.error("OFFSCREEN: AI task failed:", error);
-            budgetInMinutes = 60; // Fallback
+            budgetInMinutes = 1; // Fallback
         }
 
         // --- THIS IS THE FIX ---
@@ -60,36 +60,37 @@ chrome.runtime.onMessage.addListener(async (message) => {
     }
 
     else if (message.target === 'offscreen' && message.action === 'budgetExceededNotificationWriterAPI') {
+        console.log("OFFSCREEN: A message was received:", message);
         const userInput = message.data || {};
         const windowId = message.windowId;
         const budget = message.budget;
 
         try {
             const availability = await LanguageModel.availability();
-            if (available === 'unavailable') {
+            if (availability === 'unavailable') {
                 // The Writer API isn't usable.
                 return;
             }
             else if (availability === "available") {
                 const params = await LanguageModel.params();
                 const options = {
-                    sharedContext: 'This is about user well-being and productivity during work hours.',
-                    tone: 'formal',
-                    format: 'plain-text',
-                    length: 'long',
+                    // sharedContext: 'This is about user well-being and productivity during work hours.',
+                    // tone: 'formal',
+                    // format: 'plain-text',
+                    // length: 'long',
                     temperature: 0.8,
                     topK: params.defaultTopK
                 };
-                writer = await LanguageModel.create(options);
+                const session = await LanguageModel.create(options);
                 const promptString = `You are an AI wellness assistant creating a brief reminder for ${userInput.name || 'an office worker'}. 
                                      This user identifies as ${userInput.gender || 'an adult'} in the ${userInput.age || 'working'} age group, has a ${userInput.activityLevel || 'moderate'} activity level, and works a ${userInput.officeShift || 'standard'} shift (${userInput.officeHours || 'business hours'}). They just exceeded their screen time budget of ${budget} minutes.
 
-                                     Generate a short, encouraging wellness tip (under 50 words). Suggest 1-2 simple, actionable activities suitable for a quick break at their desk or office to refresh their mind and body. 
+                                     Generate a short, encouraging wellness tip (under 250 words) with a formal tone. Suggest 1-2 simple, actionable activities suitable for a quick break at their desk or office to refresh their mind and body like how many glasses of water should be drunk during this short break based on their budget in minutes not only this but many other activities by considering the input factors and budget. 
 
                                      Keep the instructions concise.`;
                 // 5. Run the prompt to generate the tip
                 console.log("OFFSCREEN: Sending prompt to Writer API...");
-                wellnessTip = await writer.prompt(promptString);
+                wellnessTip = await session.prompt(promptString);
                 console.log("OFFSCREEN: Got wellness tip:", wellnessTip)
             }
             else {
@@ -100,14 +101,14 @@ chrome.runtime.onMessage.addListener(async (message) => {
         catch (error) {
             console.error("OFFSCREEN: Writer API initialization failed:", error);
         }
-
+        console.log("OFFSCREEN: Sending tip back to background:", wellnessTip);
         chrome.runtime.sendMessage({
             target: 'background',
             action: 'wellnessTipNotification',
             windowId: windowId,
             tip: wellnessTip
         });
-
+        console.log("OFFSCREEN: Tip message SENT back to background.");
         window.close();
 
     }

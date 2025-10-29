@@ -72,13 +72,19 @@ chrome.runtime.onMessage.addListener(async (message) => {
         }
     }
     else if (message.target === 'background' && message.action === 'wellnessTipNotification') {
-        chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'icons/icon128.png',
-            title: 'Wellness Reminder',
-            message: message.tip,
-            priority: 2
-        });
+        console.log("BG: CORRECT 'showWellnessTip' message received. Tip:", message.tip);
+        try {
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'Aura.png',
+                title: 'Aura - Time for a Break!',
+                message: message.tip || "Stand up, stretch, and grab some water!",
+                priority: 2
+            });
+            console.log("BG: chrome.notifications.create() called successfully.");
+        } catch (notificationError) {
+            console.error("BG: FAILED to create notification:", notificationError);
+        }
     }
 });
 
@@ -166,18 +172,31 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
             // 3. Compare cumulative time against the window's budget
             if (cumulativeWindowTime >= budgetInMillis) {
+                console.log("BG: 'getWellnessTip' message SENT to offscreen.");
                 console.log(`Window ${windowKeyToCheck} exceeded budget! Triggering notification...`);
-                const storageData = await chrome.storage.local.get('userInput');
-                const userInput = storageData.userInput || {};
+                try { // <-- ADD TRY HERE
+                    console.log("Step A: Attempting to get userInput...");
+                    const storageData = await chrome.storage.local.get('userInput');
+                    const userInput = storageData.userInput || {};
+                    console.log("Step B: Got userInput successfully.");
 
-                await createOffScreenDoc();
-                chrome.runtime.sendMessage({
-                    target: 'offscreen',
-                    action: 'budgetExceededNotificationWriterAPI',
-                    windowId: previousTabWindowId,   // Use the windowId received in the message
-                    budget: budgetInMinutes, // Send the calculated budget
-                    data: userInput
-                });
+                    console.log("Step C: Attempting to ensure offscreen document exists...");
+                    await createOffScreenDoc();
+                    console.log("Step D: Offscreen document should be ready.");
+
+                    console.log("Step E: Attempting to send message to offscreen...");
+                    chrome.runtime.sendMessage({
+                        target: 'offscreen',
+                        action: 'budgetExceededNotificationWriterAPI',
+                        windowId: previousTabWindowId,
+                        budget: budgetInMinutes, // Pass budget if needed by prompt
+                        data: userInput
+                    });
+                    console.log("Step F: Message sent to offscreen successfully.");
+
+                } catch (error) { // <-- ADD CATCH HERE
+                    console.error("CRITICAL ERROR inside budget exceeded block:", error); // <-- This will catch the specific error
+                }
 
                 // 4. Act: Reset timers for ALL tabs in this window and trigger notification
                 for (const key in allData) {

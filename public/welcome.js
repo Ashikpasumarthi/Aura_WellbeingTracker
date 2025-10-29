@@ -31,6 +31,7 @@ async function initializePage() {
 async function getAndSaveAIBudget() {
     console.log("getAndSaveAIBudget: Starting budget calculation..."); // <-- Log 5
     let budgetInMinutes;
+    const finalStatusElement = document.getElementById("download-status");
     try {
         // Use LanguageModel.create()
         const params = await LanguageModel.params();
@@ -46,15 +47,15 @@ async function getAndSaveAIBudget() {
         console.log("getAndSaveAIBudget: User input read from storage:", userInputFromStorage); // <-- Log 7
 
         // Run the prompt using the input from storage
-        const promptString = `Given the user profile: ${JSON.stringify(userInputFromStorage)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes`;
-        console.log("getAndSaveAIBudget: Sending prompt to AI:", promptString); // <-- Log 8
+        // const promptString = `Given the user profile: ${JSON.stringify(userInputFromStorage)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes`;
+        // console.log("getAndSaveAIBudget: Sending prompt to AI:", promptString); // <-- Log 8
         const response = await session.prompt(promptString);
         budgetInMinutes = parseInt(response, 10);
         console.log("getAndSaveAIBudget: AI responded with budget:", budgetInMinutes); // <-- Log 9
 
     } catch (error) {
         console.error("AI task failed during recalculation:", error);
-        budgetInMinutes = 60; // Fallback
+        budgetInMinutes = 1; // Fallback
     }
 
     // Save the new budget
@@ -98,13 +99,15 @@ async function handleSavePreferences() {
     const userInput = {
         name: document.getElementById('name').value,
         gender: document.getElementById('gender').value,
-        age: document.getElementById('age-group').value,
+        age: document.getElementById('age').value,
         activityLevel: document.getElementById('activity-level').value,
         officeShift: document.getElementById('office-shift').value,
         officeHours: document.getElementById('office-hours').value,
     };
 
     console.log("Save Clicked: New user input gathered:", userInput); // <-- Log 1
+    const statusContainer = document.getElementById('ai-status-container');
+    const finalStatusElement = document.getElementById('download-status');
 
     try {
         const allData = await chrome.storage.local.get(null);
@@ -112,15 +115,60 @@ async function handleSavePreferences() {
         await chrome.storage.local.set(allData);
         console.log("Save Complete: User input has been saved to storage."); // <-- Log 2
 
+
+        // --- START ANIMATION ---
+        // Show the status container
+        statusContainer.style.display = 'flex';
+        await runStatusAnimation();
+        // --- ANIMATION COMPLETE ---
+
+
         // Now, trigger the recalculation
         console.log("Triggering AI budget recalculation..."); // <-- Log 3
         await getAndSaveAIBudget();
         console.log("AI budget recalculation finished."); // <-- Log 4
 
+        statusContainer.style.display = 'none';
+
     } catch (error) {
         console.error("Failed to save user input or recalculate budget:", error);
+        finalStatusElement.textContent = "Error saving preferences.";
+        statusContainer.style.display = 'none';
     }
 }
+
+
+// New function to handle the typing animation
+function runStatusAnimation() {
+    return new Promise(async (resolve) => { // Use a Promise to wait for completion
+        const statusMessages = [
+            'AI is ready. Getting your budget…',
+            'Analyzing wellness patterns…',
+            'Calibrating neural pathways…',
+            'Profile calibrated ✅',
+        ];
+        const statusElement = document.getElementById('ai-status-text');
+        const typingDelay = 50; // ms per character
+        const messageDelay = 1500; // ms between messages
+
+        for (let i = 0; i < statusMessages.length; i++) {
+            const message = statusMessages[i];
+            // Simulate typing
+            for (let j = 0; j <= message.length; j++) {
+                statusElement.textContent = message.slice(0, j);
+                // Add typing cursor simulation here if needed via CSS class toggle
+                await new Promise(r => setTimeout(r, typingDelay));
+            }
+            // Pause before next message (or finishing)
+            if (i < statusMessages.length - 1) {
+                await new Promise(r => setTimeout(r, messageDelay));
+            }
+        }
+        resolve(); // Signal that the animation is complete
+    });
+}
+
+// ... (rest of your welcome.js: getAndSaveAIBudget, handleEnableAIModal, etc.) ...
 
 
 

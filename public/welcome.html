@@ -5,24 +5,349 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aura Wellbeing Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow-x: hidden;
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .title {
+            font-size: 4rem;
+            font-weight: bold;
+            background: linear-gradient(to right, #00e5ff, #2dd4bf, #14b8a6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            text-align: center;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            max-width: 800px;
+            margin-bottom: 3rem;
+        }
+
+        .form-container {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(5px);
+            border-radius: 2rem;
+            padding: 3rem;
+            box-shadow: 0 0 40px rgba(0, 229, 255, 0.3), 0 0 60px rgba(147, 51, 234, 0.2);
+            animation: pulse-glow 3s ease-in-out infinite;
+            max-width: 660px;
+            width: 100%;
+            border: 1px solid rgba(0, 229, 255, 0.2);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 2rem;
+            gap: 1.25rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .form-title {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            background: linear-gradient(to right, #00e5ff, #2dd4bf, #14b8a6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 0.875rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 0.5rem;
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #00e5ff;
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.1);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(to right, #00e5ff, #2dd4bf, #14b8a6);
+            border: none;
+            border-radius: 0.5rem;
+            color: #0f172a;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 229, 255, 0.3);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+            max-width: 1200px;
+        }
+
+        .feature-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.875rem;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 40px rgba(0, 229, 255, 0.3), 0 0 60px rgba(147, 51, 234, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 0 60px rgba(0, 229, 255, 0.5), 0 0 80px rgba(147, 51, 234, 0.3);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.125rem;
+            }
+
+            .form-container {
+                padding: 2rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Hello Blossoming Flowers !!!</h1>
+    <canvas id="bgCanvas"></canvas>
+    <div class="content">
+        <h1 class="title">AURA</h1>
+        <p class="subtitle">Elevate your wellness journey with the power of positive energy and physical vitality</p>
 
-    <input type="text" id="name" placeholder="Enter your name" />
-    <div>
-        <label>
-            Gender:
-        </label>
-        <select id="gender">
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-        </select>
+        <div class="form-container">
+            <h2 class="form-title">Your AURA Journey</h2>
+            <p class="form-subtitle">Start your path to wellness</p>
+
+            <form id="auraForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" name="name" placeholder="Enter your name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">
+                            Gender
+                        </label>
+                        <select id="gender" name="gender" required>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="age">
+                            Age
+                        </label>
+                        <select id="age" name="age" required>
+                            <option value="18-24">18-24</option>
+                            <option value="25-34">25-34</option>
+                            <option value="35-44">35-44</option>
+                            <option value="45-54">45-54</option>
+                            <option value="55-64">55-64</option>
+                            <option value="65+">65+</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Activity Level
+                        </label>
+                        <select id="activity-level" name="activity-level" required>
+                            <option value="Low">Low</option>
+                            <option value="Moderate">Moderate</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="office-shift">
+                            Office Shift
+                        </label>
+                        <select id="office-shift" name="office-shift" required>
+                            <option value="Day">Day</option>
+                            <option value="Night">Night</option>
+                            <option value="Flexible">Flexible</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="office-hours">
+                            Office Hours
+                        </label>
+                        <textarea type="text" id="office-hours" name="office-hours" placeholder="e.g., 9am to 5pm"
+                            required></textarea>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" id="save-preferences">Start Your Journey ✨</button>
+                    <button id="enable-ai-button" style="display: none;">Enable AI Features</button>
+                </div>
+                <div id="ai-status-container" style="display: none; margin-top: 1rem;text-align: center;">
+                    <div class="dots-animation"> <span></span><span></span><span></span>
+                    </div>
+                    <p id="ai-status-text" style="font-family: monospace;" class="status-text"></p>
+                </div>
+                <div>
+                    <p id="download-status" style="margin-top: 1rem; text-align: center;"></p>
+                </div>
+
+            </form>
+
+            <p style="margin-top: 1.5rem; text-align: center; font-size: 0.875rem; color: rgba(255, 255, 255, 0.6);">
+                Join thousands on their wellness journey
+            </p>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">💪</div>
+                <h3 class="feature-title">Stay Active</h3>
+                <p class="feature-description">Build strength and endurance</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧘</div>
+                <h3 class="feature-title">Find Balance</h3>
+                <p class="feature-description">Mind and body harmony</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✨</div>
+                <h3 class="feature-title">Radiate Energy</h3>
+                <p class="feature-description">Feel your aura shine</p>
+            </div>
+        </div>
+
     </div>
 
-    <div>
+    <!-- <input type="text" id="name" placeholder="Enter your name" /> -->
+    <!-- <div>
+            <label>
+                Gender:
+            </label>
+            <select id="gender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+        </div> -->
+
+    <!-- <div>
         <label>
             Age Group:
         </label>
@@ -34,9 +359,9 @@
             <option value="55-64">55-64</option>
             <option value="65+">65+</option>
         </select>
-    </div>
+    </div> -->
 
-    <div>
+    <!-- <div>
         <label>
             Activity Level:
         </label>
@@ -45,9 +370,9 @@
             <option value="Moderate">Moderate</option>
             <option value="High">High</option>
         </select>
-    </div>
+    </div> -->
 
-    <div>
+    <!-- <div>
         <label>
             Office Shift:
         </label>
@@ -57,8 +382,8 @@
             <option value="Flexible">Flexible</option>
         </select>
     </div>
-    <div>
-        <label>
+    <div> -->
+    <!-- <label>
             Office Hours:
         </label>
         <select id="office-hours">
@@ -69,14 +394,16 @@
             <option>14 to 22</option>
             <option>15 to 6</option>
         </select>
-    </div>
-    <div>
+    </div> -->
+    <!-- <div>
         <button id="save-preferences">Save</button>
     </div>
     <button id="enable-ai-button" style="display: none;">Enable AI Features</button>
     <p id="download-status"></p>
+    </div> -->
 
     <script src="welcome.js"></script>
+    <script src="animation.js"></script>
 </body>
 
 </html>
