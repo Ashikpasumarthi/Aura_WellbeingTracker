@@ -1,4 +1,25 @@
 //reference for francois
+
+const formInputs = [
+    document.getElementById('name'),
+    document.getElementById('gender'),
+    document.getElementById('age'),
+    document.getElementById('activity-level'),
+    document.getElementById('office-shift'),
+    document.getElementById('office-hours')
+];
+
+const saveButton = document.getElementById('save-preferences');
+function validateForm() {
+
+    const allFieldsFilled = formInputs.every(input => input.value.trim() !== '');
+    saveButton.disabled = !allFieldsFilled;
+}
+
+formInputs.forEach(input => {
+    input.addEventListener('input', validateForm);
+});
+
 async function initializePage() {
     const statusElement = document.getElementById('download-status');
     const downloadButton = document.getElementById('enable-ai-button');
@@ -45,7 +66,7 @@ async function getAndSaveAIBudget() {
         const userInputFromStorage = storageData.userInput || {};
         console.log("getAndSaveAIBudget: User input read from storage:", userInputFromStorage); // <-- Log 7
 
-        const promptString = `Given the user profile: ${JSON.stringify(userInputFromStorage)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes where the minutes should not be restricted only ending with 0 `;
+        const promptString = `Given the user profile: ${JSON.stringify(userInputFromStorage)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer The number should be specific and not always rounded to end in 0 (for example, 55, 72, or 85 are valid responses). `;
         console.log("getAndSaveAIBudget: Sending prompt to AI:", promptString); // <-- Log 8
         const response = await session.prompt(promptString);
         budgetInMinutes = parseInt(response, 10);
@@ -93,7 +114,8 @@ async function handleEnableAIModal() {
 
 
 // This function saves the user's form input.
-async function handleSavePreferences() {
+async function handleSavePreferences(e) {
+    e.preventDefault();
     const userInput = {
         name: document.getElementById('name').value,
         gender: document.getElementById('gender').value,
@@ -170,7 +192,7 @@ function runStatusAnimation() {
 
 
 document.getElementById('enable-ai-button').addEventListener('click', handleEnableAIModal);
-document.getElementById('save-preferences').addEventListener('click', handleSavePreferences);
+document.getElementById('save-preferences').addEventListener('click', (e) => { handleSavePreferences(e) });
 
 
 initializePage();

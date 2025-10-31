@@ -1,6 +1,6 @@
 chrome.windows.onCreated.addListener(
     async (window) => {
-        
+
         console.log("BG: New window detected. Starting AI budget process...");
 
         await createOffScreenDoc();
@@ -130,19 +130,28 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     try {
         // --- Use await to get data ---
         const allData = await chrome.storage.local.get(null);
+
+        if (allData.trackingPaused === true) {
+            console.log("BG: Tracking is paused. Not logging time.");
+            allData.lastActiveTabId = activeInfo.tabId.toString();
+            await chrome.storage.local.set(allData);
+            return; // Stop here, do not calculate time
+        }
+
         const lastActivatedTabId = allData.lastActiveTabId;
 
         console.log("Last Activated Tab ID:", lastActivatedTabId);
         console.log("New Activated Tab ID:", newTabId);
 
         let previousTabWindowId = null; // Variable to store the window ID
-
+        let sessionDuration = 0;
         // --- Process the tab the user just LEFT ---
         if (lastActivatedTabId && allData[lastActivatedTabId]) {
             allData[lastActivatedTabId].endTime = switchTime;
             const duration = switchTime - allData[lastActivatedTabId].startTime;
             if (duration > 0) {
                 allData[lastActivatedTabId].overAllTimeSpent += duration;
+                sessionDuration = duration;
             }
             // Get the window ID from the tab we just processed
             previousTabWindowId = allData[lastActivatedTabId].windowId;
@@ -167,6 +176,16 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
             const budgetInMillis = budgetInMinutes * 60 * 1000;
 
             console.log(`Window ${windowKeyToCheck}: Cumulative Time = ${cumulativeWindowTime}ms, Budget = ${budgetInMillis}ms`);
+
+
+            if (!allData.CompleteTimeSpent || isNaN(allData.CompleteTimeSpent)) allData.CompleteTimeSpent = 0;
+            if (sessionDuration > 0) {
+                allData.CompleteTimeSpent += sessionDuration / 60000;
+            }
+
+            allData.lastSessionDuration = sessionDuration;
+
+
 
             // 3. Compare cumulative time against the window's budget
             if (cumulativeWindowTime >= budgetInMillis) {
@@ -203,6 +222,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
                     }
                 }
 
+                allData.cumulativeWindowTime = 0;
 
                 console.log("Budget exceeded - Notification logic would run here.");
             }
@@ -226,6 +246,93 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     }
 
 });
+
+
+
+
+// In background.js
+
+chrome.windows.onFocusChanged.addListener(async (windowId) => {
+    // Check if the user clicked away from Chrome
+    if (windowId === chrome.windows.WINDOW_ID_NONE) { // WINDOW_ID_NONE is -1
+        console.log("BG: Focus lost. Checking time for last active tab...");
+
+        const allData = await chrome.storage.local.get(null);
+        const lastActivatedTabId = allData.lastActiveTabId;
+        const switchTime = new Date().getTime(); // "Pause time"
+
+        let previousTabWindowId = null;
+
+        // --- Process the tab the user just LEFT ---
+        if (lastActivatedTabId && allData[lastActivatedTabId]) {
+            const duration = switchTime - allData[lastActivatedTabId].startTime;
+            if (duration > 0) {
+                allData[lastActivatedTabId].overAllTimeSpent += duration;
+            }
+            // Get the window ID from the tab we just processed
+            previousTabWindowId = allData[lastActivatedTabId].windowId;
+
+            // --- We must update the startTime for the tab we just left ---
+            // This prevents "double counting" when focus returns
+            allData[lastActivatedTabId].startTime = switchTime;
+        }
+
+        // --- BUDGET CHECK LOGIC (Using Cumulative Sum) ---
+        let cumulativeWindowTime = 0;
+        const windowKeyToCheck = previousTabWindowId ? previousTabWindowId.toString() : null;
+
+        if (windowKeyToCheck) {
+            // 1. Sum the time for ALL tabs in the relevant window
+            for (const key in allData) {
+                if (allData[key] && allData[key].windowId === previousTabWindowId) {
+                    cumulativeWindowTime += allData[key].overAllTimeSpent;
+                }
+            }
+
+            // 2. Get the budget for that window
+            const budgetInMinutes = (allData[windowKeyToCheck] && allData[windowKeyToCheck].budget)
+                ? allData[windowKeyToCheck].budget
+                : (allData.globalBudget || 60); // Fallback logic
+            const budgetInMillis = budgetInMinutes * 60 * 1000;
+
+            console.log(`Window ${windowKeyToCheck} (Focus Lost): Cumulative Time = ${cumulativeWindowTime}ms, Budget = ${budgetInMillis}ms`);
+
+            // 3. Compare cumulative time against the window's budget
+            if (cumulativeWindowTime >= budgetInMillis) {
+                console.log(`Window ${windowKeyToCheck} exceeded budget! Triggering notification...`);
+
+                try {
+                    const storageData = await chrome.storage.local.get('userInput');
+                    const userInput = storageData.userInput || {};
+
+                    await createOffScreenDoc();
+                    chrome.runtime.sendMessage({
+                        target: 'offscreen',
+                        action: 'budgetExceededNotificationWriterAPI',
+                        windowId: previousTabWindowId,
+                        budget: budgetInMinutes,
+                        data: userInput
+                    });
+
+                    // 4. Act: Reset timers for ALL tabs in this window
+                    for (const key in allData) {
+                        if (allData[key] && allData[key].windowId === previousTabWindowId) {
+                            allData[key].overAllTimeSpent = 0; // Reset time
+                        }
+                    }
+                } catch (error) {
+                    console.error("CRITICAL ERROR inside budget exceeded block (onFocusChanged):", error);
+                }
+            }
+        }
+        // --- END BUDGET CHECK ---
+
+        // Save all changes
+        await chrome.storage.local.set(allData);
+    }
+});
+
+
 
 // Add this log OUTSIDE the listener to confirm the script loaded
 console.log("BG: onRemoved listener script is loaded.");

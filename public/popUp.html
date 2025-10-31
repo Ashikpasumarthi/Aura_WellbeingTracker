@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Wellbeing Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 320px;
+            height: 400px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0a0e27 100%);
+            color: #f0f9ff;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            height: 100%;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Animated background */
+        .bg-effects {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .glow-orb {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.3), transparent);
+            filter: blur(40px);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .glow-orb-1 {
+            top: -50px;
+            right: -50px;
+        }
+
+        .glow-orb-2 {
+            bottom: -50px;
+            left: -50px;
+            animation-delay: 2s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        /* Header */
+        .header {
+            position: relative;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #00ffff, #bf40bf, #00ffa3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: rgba(240, 249, 255, 0.7);
+        }
+
+        /* Stats Card */
+        .stats-card {
+            position: relative;
+            background: rgba(10, 25, 41, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: rgba(240, 249, 255, 0.6);
+        }
+
+        .stat-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #00ffff;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 0.5rem 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #bf40bf);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+
+        /* Buttons */
+        .button {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #00ffff, #bf40bf);
+            border: none;
+            border-radius: 0.75rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+        }
+
+        .button-secondary {
+            background: rgba(10, 25, 41, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: none;
+        }
+
+        .button-secondary:hover {
+            background: rgba(10, 25, 41, 0.8);
+            border-color: rgba(0, 255, 255, 0.5);
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            color: #22c55e;
+            margin-top: 1rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .footer {
+            margin-top: auto;
+            text-align: center;
+            font-size: 0.75rem;
+            color: rgba(240, 249, 255, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-effects">
+        <div class="glow-orb glow-orb-1"></div>
+        <div class="glow-orb glow-orb-2"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">✨ AURA</div>
+            <div class="subtitle">Wellbeing Tracker</div>
+        </div>
+
+        <!-- Stats Card -->
+        <div class="stats-card">
+            <div class="stat-item">
+                <span class="stat-label">Screen Time Today</span>
+                <span class="stat-value" id="screen-time"></span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">AI - Budget</span>
+                <span class="stat-value" id="AI-budget">0m</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Break Reminder</span>
+                <span class="stat-value" id="next-break">--</span>
+            </div>
+        </div>
+
+        <!-- Status Badge -->
+        <div style="display: flex; justify-content: center;">
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span id="status-text">Tracking Active</span>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <button class="button" id="setup-btn">
+            ⚙ Setup Profile
+        </button>
+        <button class="button button-secondary" id="pause-btn">
+            ⏸ Pause Tracking
+        </button>
+
+        <!-- Footer -->
+        <div class="footer">
+            Stay healthy, stay productive! 💚
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

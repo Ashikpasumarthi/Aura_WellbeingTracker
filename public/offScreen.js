@@ -7,12 +7,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
         console.log("OFFSCREEN: Correct 'getAIBudget' message received. Starting AI task...");
         let budgetInMinutes;
 
-       
+
         const userInput = message.data || {};
-        const windowId = message.windowId; 
+        const windowId = message.windowId;
 
         try {
-            
+
             const availability = await LanguageModel.availability();
             console.log("OFFSCREEN: AI Availability:", availability);
 
@@ -49,8 +49,8 @@ chrome.runtime.onMessage.addListener(async (message) => {
         chrome.runtime.sendMessage({
             target: 'background',
             action: 'saveAIBudget',
-            windowId: windowId,   
-            budget: budgetInMinutes 
+            windowId: windowId,
+            budget: budgetInMinutes
         });
 
         // --- THIS IS THE FIX ---
@@ -73,10 +73,6 @@ chrome.runtime.onMessage.addListener(async (message) => {
             else if (availability === "available") {
                 const params = await LanguageModel.params();
                 const options = {
-                    // sharedContext: 'This is about user well-being and productivity during work hours.',
-                    // tone: 'formal',
-                    // format: 'plain-text',
-                    // length: 'long',
                     temperature: 0.8,
                     topK: params.defaultTopK
                 };

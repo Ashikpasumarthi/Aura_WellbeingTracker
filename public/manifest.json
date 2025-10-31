@@ -4,8 +4,12 @@
   "description": "Notifying about user's well-being",
   "manifest_version": 3,
   "action": {
-    "default_popup": "index.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "Icons/Aura32.png"
+    }
   },
+  "origin_trial_token": "ApVDxlcP3pEoCdNhdKuYKSZ9qCmt066ONGGrpZteYp9bBW/k3NGC66OGrrJDrZu+cBIvmfe4etx3VKjhGuhJmg4AAABseyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vcGRpY25pY2FnZW1ubWZnZmhsY2VrY21jYm9naHBmZ24iLCJmZWF0dXJlIjoiQUlXcml0ZXJBUEkiLCJleHBpcnkiOjE3NzY3Mjk2MDB9",
   "permissions": [
     "activeTab",
     "notifications",
@@ -22,5 +26,11 @@
   "options_ui": {
     "page": "welcome.html",
     "open_in_tab": true
+  },
+  "icons": {
+    "16": "Icons/Aura16.png",
+    "32": "Icons/Aura32.png",
+    "48": "Icons/Aura48.png",
+    "128": "Icons/Aura128.png"
   }
 }
