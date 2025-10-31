@@ -33,7 +33,7 @@ async function getAndSaveAIBudget() {
     let budgetInMinutes;
     const finalStatusElement = document.getElementById("download-status");
     try {
-        
+
         const params = await LanguageModel.params();
         const session = await LanguageModel.create({
             temperature: 0.7,
@@ -45,7 +45,7 @@ async function getAndSaveAIBudget() {
         const userInputFromStorage = storageData.userInput || {};
         console.log("getAndSaveAIBudget: User input read from storage:", userInputFromStorage); // <-- Log 7
 
-        const promptString = `Given the user profile: ${JSON.stringify(userInput)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes where the minutes should not be restricted only ending with 0 `;
+        const promptString = `Given the user profile: ${JSON.stringify(userInputFromStorage)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes where the minutes should not be restricted only ending with 0 `;
         console.log("getAndSaveAIBudget: Sending prompt to AI:", promptString); // <-- Log 8
         const response = await session.prompt(promptString);
         budgetInMinutes = parseInt(response, 10);
@@ -120,7 +120,7 @@ async function handleSavePreferences() {
         // --- ANIMATION COMPLETE ---
 
 
-        
+
         console.log("Triggering AI budget recalculation..."); // <-- Log 3
         await getAndSaveAIBudget();
         console.log("AI budget recalculation finished."); // <-- Log 4
@@ -137,7 +137,7 @@ async function handleSavePreferences() {
 
 // New function to handle the typing animation
 function runStatusAnimation() {
-    return new Promise(async (resolve) => { 
+    return new Promise(async (resolve) => {
         const statusMessages = [
             'AI is ready. Getting your budget…',
             'Analyzing wellness patterns…',

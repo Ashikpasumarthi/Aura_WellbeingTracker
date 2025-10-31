@@ -1,8 +1,6 @@
 chrome.windows.onCreated.addListener(
     async (window) => {
-        // let userInput = { gender: "Male", age: "25-34", activityLevel: "Moderate" };
-        // console.log("Gemini API will be called here with async await to get the time he/she should spend on window based on user input", userInput);
-        //store the time in local chrome which we got from gemini api and also create a variable which is 0 initially and will be incremented every second using set interval
+        
         console.log("BG: New window detected. Starting AI budget process...");
 
         await createOffScreenDoc();
