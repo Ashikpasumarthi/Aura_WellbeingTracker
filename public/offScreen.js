@@ -7,20 +7,19 @@ chrome.runtime.onMessage.addListener(async (message) => {
         console.log("OFFSCREEN: Correct 'getAIBudget' message received. Starting AI task...");
         let budgetInMinutes;
 
-        // --- THIS IS THE FIX ---
-        // Get the userInput DIRECTLY from the message sent by background.js
+       
         const userInput = message.data || {};
-        const windowId = message.windowId; // Get the windowId from the message too
+        const windowId = message.windowId; 
 
         try {
-            // Check AI availability using LanguageModel
+            
             const availability = await LanguageModel.availability();
             console.log("OFFSCREEN: AI Availability:", availability);
 
             if (availability === "available") {
                 const params = await LanguageModel.params();
                 const session = await LanguageModel.create({
-                    temperature: 0.3, // Keep the variation
+                    temperature: 0.7, // Keep the variation
                     topK: params.defaultTopK
                 });
 
@@ -50,8 +49,8 @@ chrome.runtime.onMessage.addListener(async (message) => {
         chrome.runtime.sendMessage({
             target: 'background',
             action: 'saveAIBudget',
-            windowId: windowId,   // Use the windowId received in the message
-            budget: budgetInMinutes // Send the calculated budget
+            windowId: windowId,   
+            budget: budgetInMinutes 
         });
 
         // --- THIS IS THE FIX ---
@@ -114,26 +113,6 @@ chrome.runtime.onMessage.addListener(async (message) => {
     }
 });
 
-// try {
-//     // 1. AWAIT the data from storage.
-//     const allData = await chrome.storage.local.get(null);
 
-//     // 2. Modify the data.
-//     const windowId = message.windowId.toString();
-//     if (!allData[windowId]) {
-//         allData[windowId] = {};
-//     }
-//     allData[windowId].budget = budgetInMinutes;
-
-//     // 3. AWAIT the save operation to complete.
-//     await chrome.storage.local.set(allData);
-//     console.log(`Budget of ${budgetInMinutes} mins set for window ${windowId}`);
-
-// } catch (error) {
-//     console.error("Failed to save budget to storage:", error);
-// }
-
-// 4. NOW it's safe to close the window.
-// window.close();
 
 
