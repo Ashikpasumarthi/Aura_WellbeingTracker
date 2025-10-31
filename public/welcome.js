@@ -33,29 +33,27 @@ async function getAndSaveAIBudget() {
     let budgetInMinutes;
     const finalStatusElement = document.getElementById("download-status");
     try {
-        // Use LanguageModel.create()
+        
         const params = await LanguageModel.params();
         const session = await LanguageModel.create({
             temperature: 0.7,
             topK: params.defaultTopK
         });
 
-        // READ the user input FROM STORAGE
         console.log("getAndSaveAIBudget: Reading userInput from storage..."); // <-- Log 6
         const storageData = await chrome.storage.local.get('userInput');
         const userInputFromStorage = storageData.userInput || {};
         console.log("getAndSaveAIBudget: User input read from storage:", userInputFromStorage); // <-- Log 7
 
-        // Run the prompt using the input from storage
-        // const promptString = `Given the user profile: ${JSON.stringify(userInputFromStorage)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes`;
-        // console.log("getAndSaveAIBudget: Sending prompt to AI:", promptString); // <-- Log 8
+        const promptString = `Given the user profile: ${JSON.stringify(userInput)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes where the minutes should not be restricted only ending with 0 `;
+        console.log("getAndSaveAIBudget: Sending prompt to AI:", promptString); // <-- Log 8
         const response = await session.prompt(promptString);
         budgetInMinutes = parseInt(response, 10);
         console.log("getAndSaveAIBudget: AI responded with budget:", budgetInMinutes); // <-- Log 9
 
     } catch (error) {
         console.error("AI task failed during recalculation:", error);
-        budgetInMinutes = 1; // Fallback
+        budgetInMinutes = 60; // Fallback
     }
 
     // Save the new budget
@@ -117,13 +115,12 @@ async function handleSavePreferences() {
 
 
         // --- START ANIMATION ---
-        // Show the status container
         statusContainer.style.display = 'flex';
         await runStatusAnimation();
         // --- ANIMATION COMPLETE ---
 
 
-        // Now, trigger the recalculation
+        
         console.log("Triggering AI budget recalculation..."); // <-- Log 3
         await getAndSaveAIBudget();
         console.log("AI budget recalculation finished."); // <-- Log 4
@@ -140,7 +137,7 @@ async function handleSavePreferences() {
 
 // New function to handle the typing animation
 function runStatusAnimation() {
-    return new Promise(async (resolve) => { // Use a Promise to wait for completion
+    return new Promise(async (resolve) => { 
         const statusMessages = [
             'AI is ready. Getting your budget…',
             'Analyzing wellness patterns…',
@@ -168,7 +165,7 @@ function runStatusAnimation() {
     });
 }
 
-// ... (rest of your welcome.js: getAndSaveAIBudget, handleEnableAIModal, etc.) ...
+
 
 
 

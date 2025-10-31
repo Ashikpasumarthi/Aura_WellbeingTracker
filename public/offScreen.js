@@ -25,8 +25,8 @@ chrome.runtime.onMessage.addListener(async (message) => {
                 });
 
 
-                // const promptString = `Given the user profile: ${JSON.stringify(userInput)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes`;
-                // console.log("OFFSCREEN: Sending prompt:", promptString);
+                const promptString = `Given the user profile: ${JSON.stringify(userInput)}. Recommend a maximum continuous screen time budget in minutes for a single focused work session before a break is advised. Consider that this is during office hours and should balance productivity with well-being. Respond with only an integer representing the total minutes where the minutes should not be restricted only ending with 0 `;
+                console.log("OFFSCREEN: Sending prompt:", promptString);
 
                 const response = await session.prompt(promptString);
                 budgetInMinutes = parseInt(response, 10);
@@ -34,15 +34,15 @@ chrome.runtime.onMessage.addListener(async (message) => {
 
                 if (isNaN(budgetInMinutes)) {
                     console.warn("OFFSCREEN: AI response NaN. Falling back.");
-                    budgetInMinutes = 1;
+                    budgetInMinutes = 60;
                 }
             } else {
                 console.log("OFFSCREEN: AI not available. Falling back.");
-                budgetInMinutes = 1; // Fallback
+                budgetInMinutes = 60; // Fallback
             }
         } catch (error) {
             console.error("OFFSCREEN: AI task failed:", error);
-            budgetInMinutes = 1; // Fallback
+            budgetInMinutes = 60; // Fallback
         }
 
         // --- THIS IS THE FIX ---
