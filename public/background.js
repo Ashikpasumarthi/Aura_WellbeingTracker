@@ -1,22 +1,42 @@
-chrome.windows.onCreated.addListener(
-    async (window) => {
+// chrome.windows.onCreated.addListener(
+//     async (window) => {
 
-        console.log("BG: New window detected. Starting AI budget process...");
+//         console.log("BG: New window detected. Starting AI budget process...");
 
-        await createOffScreenDoc();
-        const storageData = await chrome.storage.local.get('userInput');
-        const userInput = storageData.userInput || {};
-        chrome.runtime.sendMessage({
-            target: 'offscreen',
-            action: 'getAIBudget',
-            windowId: window.id,
-            data: userInput
-        });
-    },
-    {
-        windowType: ["normal"]
+//         await createOffScreenDoc();
+//         const storageData = await chrome.storage.local.get('userInput');
+//         const userInput = storageData.userInput || {};
+//         chrome.runtime.sendMessage({
+//             target: 'offscreen',
+//             action: 'getAIBudget',
+//             windowId: window.id,
+//             data: userInput
+//         });
+//     },
+//     {
+//         windowType: ["normal"]
+//     }
+// )
+
+chrome.windows.onCreated.addListener(async (window) => {
+    console.log("BG: New window detected. Assigning CLOUD budget...");
+
+    const allData = await chrome.storage.local.get(null);
+
+    // Get the cloud budget saved earlier in welcome.js
+    const cloudBudget = allData.cloudBudget || allData.globalBudget || 60;
+
+    if (!allData[window.id]) {
+        allData[window.id] = {};
     }
-)
+
+    // Assign cloud budget to this new window
+    allData[window.id].budget = cloudBudget;
+
+    await chrome.storage.local.set(allData);
+
+    console.log(`BG: Cloud budget ${cloudBudget} mins assigned to window ${window.id}`);
+});
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' && tab.url && tab.url.endsWith('welcome.html')) {
@@ -170,9 +190,10 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
             }
 
             // 2. Get the budget for that window
-            const budgetInMinutes = (allData[windowKeyToCheck] && allData[windowKeyToCheck].budget)
-                ? allData[windowKeyToCheck].budget
-                : (allData.globalBudget || 60); // Fallback logic
+            // const budgetInMinutes = (allData[windowKeyToCheck] && allData[windowKeyToCheck].budget)
+            // //    ? allData[windowKeyToCheck].budget
+            //     : (allData.globalBudget || 1); 
+            const budgetInMinutes = 2;
             const budgetInMillis = budgetInMinutes * 60 * 1000;
 
             console.log(`Window ${windowKeyToCheck}: Cumulative Time = ${cumulativeWindowTime}ms, Budget = ${budgetInMillis}ms`);
@@ -188,10 +209,67 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 
             // 3. Compare cumulative time against the window's budget
+            // if (cumulativeWindowTime >= budgetInMillis) {
+            //     console.log("BG: 'getWellnessTip' message SENT to offscreen.");
+            //     console.log(`Window ${windowKeyToCheck} exceeded budget! Triggering notification...`);
+            //     try { // <-- ADD TRY HERE
+            //         console.log("Step A: Attempting to get userInput...");
+            //         const storageData = await chrome.storage.local.get('userInput');
+            //         const userInput = storageData.userInput || {};
+            //         console.log("Step B: Got userInput successfully.");
+
+            //         console.log("Step C: Attempting to ensure offscreen document exists...");
+            //         await createOffScreenDoc();
+            //         console.log("Step D: Offscreen document should be ready.");
+
+            //         console.log("Step E: Attempting to send message to offscreen...");
+            //         chrome.runtime.sendMessage({
+            //             target: 'offscreen',
+            //             action: 'budgetExceededNotificationWriterAPI',
+            //             windowId: previousTabWindowId,
+            //             budget: budgetInMinutes, // Pass budget if needed by prompt
+            //             data: userInput
+            //         });
+            //         console.log("Step F: Message sent to offscreen successfully.");
+
+            //     } catch (error) { // <-- ADD CATCH HERE
+            //         console.error("CRITICAL ERROR inside budget exceeded block:", error); // <-- This will catch the specific error
+            //     }
+
+            //     const sessionData = {
+            //         windowId: windowKeyToCheck,
+            //         timeSpentMinutes: Math.round(cumulativeWindowTime / 60000), // Convert to minutes
+            //         timestamp: new Date().toISOString()
+            //     };
+
+
+            //     fetch('https://aura-backend-492409857576.us-central1.run.app/api/sync-session', {
+            //         method: 'POST',
+            //         headers: { 'Content-Type': 'application/json' },
+            //         body: JSON.stringify(sessionData)
+            //     })
+            //         .then(response => {
+            //             if (response.ok) console.log("BG: Session synced to Cloud Run!");
+            //             else console.error("BG: Cloud sync failed.");
+            //         })
+            //         .catch(err => console.error("BG: Network error syncing session:", err));
+
+            //     // 4. Act: Reset timers for ALL tabs in this window and trigger notification
+            //     for (const key in allData) {
+            //         if (allData[key] && allData[key].windowId === previousTabWindowId) {
+            //             allData[key].overAllTimeSpent = 0; // Reset time
+            //         }
+            //     }
+
+            //     allData.cumulativeWindowTime = 0;
+
+            //     console.log("Budget exceeded - Notification logic would run here.");
+            // }
             if (cumulativeWindowTime >= budgetInMillis) {
                 console.log("BG: 'getWellnessTip' message SENT to offscreen.");
                 console.log(`Window ${windowKeyToCheck} exceeded budget! Triggering notification...`);
-                try { // <-- ADD TRY HERE
+
+                try {
                     console.log("Step A: Attempting to get userInput...");
                     const storageData = await chrome.storage.local.get('userInput');
                     const userInput = storageData.userInput || {};
@@ -211,11 +289,63 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
                     });
                     console.log("Step F: Message sent to offscreen successfully.");
 
-                } catch (error) { // <-- ADD CATCH HERE
-                    console.error("CRITICAL ERROR inside budget exceeded block:", error); // <-- This will catch the specific error
+                } catch (error) {
+                    console.error("CRITICAL ERROR inside budget exceeded block:", error);
                 }
 
-                // 4. Act: Reset timers for ALL tabs in this window and trigger notification
+                const sessionData = {
+                    windowId: windowKeyToCheck,
+                    timeSpentMinutes: Math.round(cumulativeWindowTime / 60000), // Convert to minutes
+                    timestamp: new Date().toISOString()
+                };
+
+                // 🔹 1) Sync session to backend
+                fetch('https://aura-backend-492409857576.us-central1.run.app/api/sync-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sessionData)
+                })
+                    .then(response => {
+                        if (response.ok) console.log("BG: Session synced to Cloud Run!");
+                        else console.error("BG: Cloud sync failed.");
+                    })
+                    .catch(err => console.error("BG: Network error syncing session:", err));
+
+                // 🔹 2) NEW: Call /api/generate-insight and show the wellness tip
+                try {
+                    const insightRes = await fetch(
+                        'https://aura-backend-492409857576.us-central1.run.app/api/generate-insight',
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({}) // body not used by backend right now
+                        }
+                    );
+
+                    if (insightRes.ok) {
+                        const insightData = await insightRes.json();
+                        const tip =
+                            insightData.insight ||
+                            'Take a short break, stretch, and hydrate.';
+
+                        console.log('BG: Insight from server:', tip);
+
+                        // Show Chrome notification with the AI insight
+                        chrome.notifications.create({
+                            type: 'basic',
+                            iconUrl: 'Aura.png',
+                            title: 'Aura – Wellness Insight',
+                            message: tip,
+                            priority: 2
+                        });
+                    } else {
+                        console.error('BG: generate-insight failed with status', insightRes.status);
+                    }
+                } catch (err) {
+                    console.error('BG: Error calling /api/generate-insight:', err);
+                }
+
+                // 🔹 3) Reset timers for ALL tabs in this window
                 for (const key in allData) {
                     if (allData[key] && allData[key].windowId === previousTabWindowId) {
                         allData[key].overAllTimeSpent = 0; // Reset time
@@ -224,7 +354,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
                 allData.cumulativeWindowTime = 0;
 
-                console.log("Budget exceeded - Notification logic would run here.");
+                console.log("Budget exceeded - Notification & reset done.");
             }
         }
         // --- END BUDGET CHECK ---
@@ -245,6 +375,9 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
         console.error("Error updating tab activation data:", error);
     }
 
+
+
+
 });
 
 
@@ -252,86 +385,109 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // In background.js
 
+// chrome.windows.onFocusChanged.addListener(async (windowId) => {
+//     // Check if the user clicked away from Chrome
+//     if (windowId === chrome.windows.WINDOW_ID_NONE) { // WINDOW_ID_NONE is -1
+//         console.log("BG: Focus lost. Checking time for last active tab...");
+
+//         const allData = await chrome.storage.local.get(null);
+//         const lastActivatedTabId = allData.lastActiveTabId;
+//         const switchTime = new Date().getTime(); // "Pause time"
+
+//         let previousTabWindowId = null;
+
+//         // --- Process the tab the user just LEFT ---
+//         if (lastActivatedTabId && allData[lastActivatedTabId]) {
+//             const duration = switchTime - allData[lastActivatedTabId].startTime;
+//             if (duration > 0) {
+//                 allData[lastActivatedTabId].overAllTimeSpent += duration;
+//             }
+//             // Get the window ID from the tab we just processed
+//             previousTabWindowId = allData[lastActivatedTabId].windowId;
+
+//             // --- We must update the startTime for the tab we just left ---
+//             // This prevents "double counting" when focus returns
+//             allData[lastActivatedTabId].startTime = switchTime;
+//         }
+
+//         // --- BUDGET CHECK LOGIC (Using Cumulative Sum) ---
+//         let cumulativeWindowTime = 0;
+//         const windowKeyToCheck = previousTabWindowId ? previousTabWindowId.toString() : null;
+
+//         if (windowKeyToCheck) {
+//             // 1. Sum the time for ALL tabs in the relevant window
+//             for (const key in allData) {
+//                 if (allData[key] && allData[key].windowId === previousTabWindowId) {
+//                     cumulativeWindowTime += allData[key].overAllTimeSpent;
+//                 }
+//             }
+
+//             // 2. Get the budget for that window
+//             const budgetInMinutes = (allData[windowKeyToCheck] && allData[windowKeyToCheck].budget)
+//                 ? allData[windowKeyToCheck].budget
+//                 : (allData.globalBudget || 60); // Fallback logic
+//             const budgetInMillis = budgetInMinutes * 60 * 1000;
+
+//             console.log(`Window ${windowKeyToCheck} (Focus Lost): Cumulative Time = ${cumulativeWindowTime}ms, Budget = ${budgetInMillis}ms`);
+
+//             // 3. Compare cumulative time against the window's budget
+//             if (cumulativeWindowTime >= budgetInMillis) {
+//                 console.log(`Window ${windowKeyToCheck} exceeded budget! Triggering notification...`);
+
+//                 try {
+//                     const storageData = await chrome.storage.local.get('userInput');
+//                     const userInput = storageData.userInput || {};
+
+//                     await createOffScreenDoc();
+//                     chrome.runtime.sendMessage({
+//                         target: 'offscreen',
+//                         action: 'budgetExceededNotificationWriterAPI',
+//                         windowId: previousTabWindowId,
+//                         budget: budgetInMinutes,
+//                         data: userInput
+//                     });
+
+//                     // 4. Act: Reset timers for ALL tabs in this window
+//                     for (const key in allData) {
+//                         if (allData[key] && allData[key].windowId === previousTabWindowId) {
+//                             allData[key].overAllTimeSpent = 0; // Reset time
+//                         }
+//                     }
+//                 } catch (error) {
+//                     console.error("CRITICAL ERROR inside budget exceeded block (onFocusChanged):", error);
+//                 }
+//             }
+//         }
+//         // --- END BUDGET CHECK ---
+
+//         // Save all changes
+//         await chrome.storage.local.set(allData);
+//     }
+// });
+
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
-    // Check if the user clicked away from Chrome
-    if (windowId === chrome.windows.WINDOW_ID_NONE) { // WINDOW_ID_NONE is -1
+    if (windowId === chrome.windows.WINDOW_ID_NONE) {
         console.log("BG: Focus lost. Checking time for last active tab...");
 
         const allData = await chrome.storage.local.get(null);
         const lastActivatedTabId = allData.lastActiveTabId;
-        const switchTime = new Date().getTime(); // "Pause time"
+        const switchTime = Date.now();
 
         let previousTabWindowId = null;
 
-        // --- Process the tab the user just LEFT ---
         if (lastActivatedTabId && allData[lastActivatedTabId]) {
             const duration = switchTime - allData[lastActivatedTabId].startTime;
             if (duration > 0) {
                 allData[lastActivatedTabId].overAllTimeSpent += duration;
             }
-            // Get the window ID from the tab we just processed
-            previousTabWindowId = allData[lastActivatedTabId].windowId;
 
-            // --- We must update the startTime for the tab we just left ---
-            // This prevents "double counting" when focus returns
+            previousTabWindowId = allData[lastActivatedTabId].windowId;
             allData[lastActivatedTabId].startTime = switchTime;
         }
 
-        // --- BUDGET CHECK LOGIC (Using Cumulative Sum) ---
-        let cumulativeWindowTime = 0;
-        const windowKeyToCheck = previousTabWindowId ? previousTabWindowId.toString() : null;
-
-        if (windowKeyToCheck) {
-            // 1. Sum the time for ALL tabs in the relevant window
-            for (const key in allData) {
-                if (allData[key] && allData[key].windowId === previousTabWindowId) {
-                    cumulativeWindowTime += allData[key].overAllTimeSpent;
-                }
-            }
-
-            // 2. Get the budget for that window
-            const budgetInMinutes = (allData[windowKeyToCheck] && allData[windowKeyToCheck].budget)
-                ? allData[windowKeyToCheck].budget
-                : (allData.globalBudget || 60); // Fallback logic
-            const budgetInMillis = budgetInMinutes * 60 * 1000;
-
-            console.log(`Window ${windowKeyToCheck} (Focus Lost): Cumulative Time = ${cumulativeWindowTime}ms, Budget = ${budgetInMillis}ms`);
-
-            // 3. Compare cumulative time against the window's budget
-            if (cumulativeWindowTime >= budgetInMillis) {
-                console.log(`Window ${windowKeyToCheck} exceeded budget! Triggering notification...`);
-
-                try {
-                    const storageData = await chrome.storage.local.get('userInput');
-                    const userInput = storageData.userInput || {};
-
-                    await createOffScreenDoc();
-                    chrome.runtime.sendMessage({
-                        target: 'offscreen',
-                        action: 'budgetExceededNotificationWriterAPI',
-                        windowId: previousTabWindowId,
-                        budget: budgetInMinutes,
-                        data: userInput
-                    });
-
-                    // 4. Act: Reset timers for ALL tabs in this window
-                    for (const key in allData) {
-                        if (allData[key] && allData[key].windowId === previousTabWindowId) {
-                            allData[key].overAllTimeSpent = 0; // Reset time
-                        }
-                    }
-                } catch (error) {
-                    console.error("CRITICAL ERROR inside budget exceeded block (onFocusChanged):", error);
-                }
-            }
-        }
-        // --- END BUDGET CHECK ---
-
-        // Save all changes
         await chrome.storage.local.set(allData);
     }
 });
-
 
 
 // Add this log OUTSIDE the listener to confirm the script loaded

@@ -9,6 +9,9 @@
       "48": "Icons/Aura32.png"
     }
   },
+  "host_permissions": [
+    "https://aura-backend-492409857576.europe-west1.run.app/*"
+  ],
   "origin_trial_token": "ApVDxlcP3pEoCdNhdKuYKSZ9qCmt066ONGGrpZteYp9bBW/k3NGC66OGrrJDrZu+cBIvmfe4etx3VKjhGuhJmg4AAABseyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vcGRpY25pY2FnZW1ubWZnZmhsY2VrY21jYm9naHBmZ24iLCJmZWF0dXJlIjoiQUlXcml0ZXJBUEkiLCJleHBpcnkiOjE3NzY3Mjk2MDB9",
   "permissions": [
     "activeTab",

@@ -90,5 +90,26 @@ function setupEventListeners() {
     });
 }
 
+document.getElementById('get-insight-btn').addEventListener('click', async () => {
+    const display = document.getElementById('insight-result');
+    display.textContent = "Asking Gemini Pro...";
+    
+    try {
+        // Replace with your actual Cloud Run URL
+        const response = await fetch('https://aura-backend-492409857576.us-central1.run.app/api/generate-insight', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        // Display the AI's response
+        display.textContent = data.insight;
+        
+    } catch (error) {
+        console.error("Error:", error);
+        display.textContent = "Failed to get insight. Check server.";
+    }
+});
+
 // Auto-refresh stats every 30 seconds
 setInterval(loadStats, 30000);

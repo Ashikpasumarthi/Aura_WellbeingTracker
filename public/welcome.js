@@ -125,28 +125,57 @@ async function handleSavePreferences(e) {
         officeHours: document.getElementById('office-hours').value,
     };
 
-    console.log("Save Clicked: New user input gathered:", userInput); // <-- Log 1
+    console.log("Save Clicked: New user input gathered:", userInput);
     const statusContainer = document.getElementById('ai-status-container');
     const finalStatusElement = document.getElementById('download-status');
 
     try {
+        // Save user input locally
         const allData = await chrome.storage.local.get(null);
         allData.userInput = userInput;
         await chrome.storage.local.set(allData);
-        console.log("Save Complete: User input has been saved to storage."); // <-- Log 2
+        console.log("Save Complete: User input has been saved to storage.");
 
+        // Call Cloud backend
+        const response = await fetch('https://aura-backend-492409857576.us-central1.run.app/api/sync-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userInput)
+        });
 
-        // --- START ANIMATION ---
+        if (response.ok) {
+            const data = await response.json();
+            console.log("Cloud Sync Successful! Budget received:", data.budget);
+
+            // Store Cloud Budget in memory + localStorage
+            window.auraBudgetMinutes = data.budget;
+            localStorage.setItem('auraBudgetMinutes', String(data.budget));
+
+            // 🔹 Save cloud budget globally so background.js can access it
+            const storageAfterCloud = await chrome.storage.local.get(null);
+            storageAfterCloud.cloudBudget = data.budget;
+            await chrome.storage.local.set(storageAfterCloud);
+
+            // 🔥 Tell background.js about this budget (so it can use it per-window)
+            chrome.runtime.sendMessage({
+                target: 'background',
+                action: 'saveAIBudget',
+                windowId: 1,     // you can later replace this with the real windowId
+                budget: data.budget
+            });
+
+            // UI Update
+            finalStatusElement.textContent =
+                `Cloud AI set your budget to ${data.budget} minutes.`;
+        } else {
+            console.error("Cloud Sync Failed");
+            // Optional: fallback to local calculation if cloud fails
+            await getAndSaveAIBudget();
+        }
+
+        // --- STATUS ANIMATION ONLY ---
         statusContainer.style.display = 'flex';
         await runStatusAnimation();
-        // --- ANIMATION COMPLETE ---
-
-
-
-        console.log("Triggering AI budget recalculation..."); // <-- Log 3
-        await getAndSaveAIBudget();
-        console.log("AI budget recalculation finished."); // <-- Log 4
-
         statusContainer.style.display = 'none';
 
     } catch (error) {
